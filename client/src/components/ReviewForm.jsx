@@ -61,7 +61,7 @@ export default function ReviewForm() {
       </form>
 
       {loading && (
-        <LoadingState message="Fetching PR diff, retrieving codebase context, and generating review..." />
+        <LoadingState message="Fetching diff → semantic search → bribing Gemini to read your code... 🤖 (30–60s, we promise it's thinking)" />
       )}
 
       {error && (

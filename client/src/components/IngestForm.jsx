@@ -92,7 +92,7 @@ export default function IngestForm() {
         </ul>
       )}
 
-      {loading && <LoadingState message="Working..." />}
+      {loading && <LoadingState message="Embedding chunks one by one like it's 2005... (free tier life 🐢)" />}
 
       {done && (
         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
