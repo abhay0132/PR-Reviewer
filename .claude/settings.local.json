@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//opt/homebrew/var/postgresql@16/**)",
+      "Read(//private/tmp/**)",
+      "Bash(/Applications/Postgres.app/Contents/Versions/18/bin/psql -p 5433 -U abhay0005 postgres -c \"CREATE DATABASE prreviewer;\")"
+    ]
+  }
+}
