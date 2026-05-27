@@ -3,15 +3,51 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-lite',
-  generationConfig: {
-    maxOutputTokens: 2048,
-    temperature: 0.2,
-  },
-});
+
+// Model fallback list — tries each in order if the previous has no quota
+const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
 
 const SYSTEM_PROMPT = `You are a senior software engineer reviewing a pull request. Be concise. Return ONLY a valid JSON object — no markdown, no explanation, no code fences. Keep each issue description under 100 words.`;
+
+async function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function generateWithFallback(prompt) {
+  for (const modelName of MODELS) {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.2 },
+    });
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        console.log(`Trying model: ${modelName} (attempt ${attempt + 1})`);
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+      } catch (err) {
+        const is429 = err.message?.includes('429');
+        const isNoQuota = err.message?.includes('limit: 0') || err.message?.includes('PERMISSION_DENIED');
+
+        if (isNoQuota) {
+          console.log(`${modelName} has no quota — trying next model`);
+          break; // Move to next model immediately
+        }
+
+        if (is429 && attempt < 2) {
+          const delayMatch = err.message?.match(/"retryDelay":"(\d+)s"/);
+          const waitMs = delayMatch ? parseInt(delayMatch[1]) * 1000 + 1000 : 30000;
+          console.log(`Rate limited on ${modelName}. Waiting ${Math.round(waitMs / 1000)}s...`);
+          await sleep(waitMs);
+          continue;
+        }
+
+        throw err; // Non-429, non-quota error — surface it
+      }
+    }
+  }
+  throw new Error('All Gemini models exhausted their quota. Please try again later.');
+}
 
 export async function reviewPR({ title, description, diff, changedFiles, codebaseContext }) {
   const contextSection = codebaseContext.length > 0
@@ -47,8 +83,7 @@ Return this exact JSON (be brief, max 3 items per array):
   "suggested_action": "one sentence"
 }`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+  const text = await generateWithFallback(prompt);
 
   // Extract JSON — find first { and last }
   const start = text.indexOf('{');
