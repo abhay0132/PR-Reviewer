@@ -17,7 +17,7 @@ async function generateWithFallback(prompt) {
   for (const modelName of MODELS) {
     const model = genAI.getGenerativeModel({
       model: modelName,
-      generationConfig: { maxOutputTokens: 2048, temperature: 0.2 },
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.2 },
     });
 
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -83,12 +83,15 @@ Return this exact JSON (be brief, max 3 items per array):
   "suggested_action": "one sentence"
 }`;
 
-  const text = await generateWithFallback(prompt);
+  const raw = await generateWithFallback(prompt);
+
+  // Strip markdown code fences if Gemini wraps the response
+  const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
   // Extract JSON — find first { and last }
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error(`No JSON found in Gemini response: ${text.slice(0, 200)}`);
+  if (start === -1 || end === -1) throw new Error(`No JSON found in Gemini response: ${text.slice(0, 300)}`);
 
   const jsonStr = text.slice(start, end + 1);
 
