@@ -13,6 +13,15 @@ async function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// Strips all variations of markdown code fences Gemini might wrap around JSON
+const cleanJson = (text) => {
+  return text
+    .replace(/^```json\n?/, '')
+    .replace(/^```\n?/, '')
+    .replace(/\n?```$/, '')
+    .trim();
+};
+
 async function generateWithFallback(prompt) {
   for (const modelName of MODELS) {
     const model = genAI.getGenerativeModel({
@@ -85,19 +94,25 @@ Return this exact JSON (be brief, max 3 items per array):
 
   const raw = await generateWithFallback(prompt);
 
-  // Strip markdown code fences if Gemini wraps the response
-  const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  // Step 1: clean markdown fences
+  const cleaned = cleanJson(raw);
 
-  // Extract JSON — find first { and last }
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error(`No JSON found in Gemini response: ${text.slice(0, 300)}`);
+  // Step 2: extract JSON by finding outermost { ... }
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
 
-  const jsonStr = text.slice(start, end + 1);
+  if (start === -1 || end === -1) {
+    console.error('Full raw Gemini response (no JSON found):\n', raw);
+    throw new Error(`No JSON found in Gemini response: ${cleaned.slice(0, 300)}`);
+  }
+
+  const jsonStr = cleaned.slice(start, end + 1);
 
   try {
     return JSON.parse(jsonStr);
-  } catch {
-    throw new Error(`Gemini returned invalid JSON: ${jsonStr.slice(0, 200)}`);
+  } catch (err) {
+    console.error('JSON parse failed. Full raw response:\n', raw);
+    console.error('Extracted JSON string:\n', jsonStr);
+    throw new Error(`Gemini returned invalid JSON (${err.message}): ${jsonStr.slice(0, 300)}`);
   }
 }
