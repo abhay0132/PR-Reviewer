@@ -1,4 +1,3 @@
-import express from 'express';
 import crypto from 'crypto';
 import { fetchPRData } from '../services/githubService.js';
 import { embedText } from '../services/embeddingService.js';
@@ -56,7 +55,7 @@ async function runReview(prUrl) {
 }
 
 // ─── /api/slack/review ─────────────────────────────────────────────────────
-router.post('/review', express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/review', async (req, res) => {
   // Verify the request came from Slack
   if (!verifySlackRequest(req)) {
     return res.status(401).json({ error: 'Invalid Slack signature' });

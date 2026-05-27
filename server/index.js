@@ -12,14 +12,13 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 
-// Capture raw body for Slack signature verification BEFORE json/urlencoded parsers
-app.use((req, _res, next) => {
-  let data = '';
-  req.on('data', chunk => { data += chunk; });
-  req.on('end', () => { req.rawBody = data; next(); });
-});
+// Capture raw body via verify callbacks — works for both JSON and urlencoded.
+// This is the standard way to get rawBody for Slack signature verification
+// without double-consuming the stream.
+const rawBodyCapture = (req, _res, buf) => { req.rawBody = buf.toString(); };
 
-app.use(express.json());
+app.use(express.json({ verify: rawBodyCapture }));
+app.use(express.urlencoded({ extended: true, verify: rawBodyCapture }));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/api/ingest', ingestRouter);
