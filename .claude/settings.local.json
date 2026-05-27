@@ -3,7 +3,11 @@
     "allow": [
       "Read(//opt/homebrew/var/postgresql@16/**)",
       "Read(//private/tmp/**)",
-      "Bash(/Applications/Postgres.app/Contents/Versions/18/bin/psql -p 5433 -U abhay0005 postgres -c \"CREATE DATABASE prreviewer;\")"
+      "Bash(/Applications/Postgres.app/Contents/Versions/18/bin/psql -p 5433 -U abhay0005 postgres -c \"CREATE DATABASE prreviewer;\")",
+      "Bash(curl -s \"https://pr-reviewer-mocha.vercel.app/assets/index-Y2aTTs5k.js\")",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Bash(git push *)"
     ]
   }
 }
