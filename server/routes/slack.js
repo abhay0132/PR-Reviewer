@@ -1,3 +1,4 @@
+import express from 'express';
 import crypto from 'crypto';
 import { fetchPRData } from '../services/githubService.js';
 import { embedText } from '../services/embeddingService.js';
